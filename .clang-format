@@ -1,0 +1,12 @@
+BasedOnStyle: LLVM
+UseTab: ForIndentation
+IndentWidth: 4
+TabWidth: 4
+ColumnLimit: 80
+PointerAlignment: Right
+SortIncludes: true
+BreakBeforeBraces: Attach
+SpaceBeforeParens: ControlStatements
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: Never
+NamespaceIndentation: Inner

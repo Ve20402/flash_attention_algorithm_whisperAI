@@ -1,0 +1,10 @@
+ghdl_work/
+matrice/
+*.bin
+*.vcd
+*.ghw
+__pycache__/
+.Xil/
+*.jou
+*.log
+vivado_project/

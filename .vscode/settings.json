@@ -1,0 +1,9 @@
+{
+    "git.ignoreLimitWarning": true,
+    "editor.defaultFormatter": "ms-vscode.cpptools",
+    "editor.detectIndentation": false,
+    "editor.insertSpaces": false,
+    "editor.tabSize": 4,
+    "C_Cpp.clang_format_style": "file",
+    "C_Cpp.clang_format_fallbackStyle": "LLVM"
+}

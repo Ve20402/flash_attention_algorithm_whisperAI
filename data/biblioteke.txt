@@ -1,0 +1,14 @@
+#glavne biblioteke za AI
+torch
+transformers==4.35.0
+
+#biblioteka za numericke operacije
+numpy==2.3.0
+
+#biblioteke za rad sa zvukom
+sounddevice==0.4.6
+soundfile
+
+#biblioteka koju smo koristili za nasu C++ funkciju
+pybind11
+
