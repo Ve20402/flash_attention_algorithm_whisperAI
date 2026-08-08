@@ -169,7 +169,7 @@ begin
                         end if;
 
                     when ST_SCORE_DRAIN =>
-                        if drain = 1 then
+                        if drain = 2 then
                             s_wr_en <= '1';
                             drain <= (others => '0');
                             state <= ST_NEXT_SCORE;
@@ -263,7 +263,7 @@ begin
                         end if;
 
                     when ST_PV_DRAIN =>
-                        if drain = 1 then
+                        if drain = 2 then
                             o_wr_en <= '1';
                             o_mul_data <= '0';
                             o_wr_addr <= std_logic_vector(r_count & d_count);
@@ -364,7 +364,7 @@ begin
     k_rd_addr <= std_logic_vector(c_count & d_count);   -- K[c][d]
     v_rd_addr <= std_logic_vector(c_count & d_count);   -- V[c][d]
     s_wr_addr <= std_logic_vector(r_count & c_count);   -- S[r][c]
-    s_rd_addr <= std_logic_vector(r_count & c_count);   -- Dile i Gavra su teski NPC-jevi
+    s_rd_addr <= std_logic_vector(r_count & c_count);   
     o_rd_addr <= std_logic_vector(r_count & d_count);   -- O[r][d]
 
     r_index <= r_count;

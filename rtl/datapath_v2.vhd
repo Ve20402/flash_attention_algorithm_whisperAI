@@ -90,9 +90,13 @@ architecture beh of datapath_v2 is
 
     signal mac_a   : signed(23 downto 0);
     signal mac_b   : sd24_arr;
+    signal mac_a_reg : signed(23 downto 0) := (others => '0');
+    signal mac_b_reg : sd24_arr := (others => (others => '0'));
     signal prod    : acc_arr := (others => (others => '0'));
     signal acc     : acc_arr := (others => (others => '0'));
+    signal en_mul  : std_logic := '0';
     signal en_add  : std_logic := '0';
+    signal clr_mul : std_logic := '0';
     signal clr_add : std_logic := '0';
 
     signal s_val           : acc_arr;
@@ -231,20 +235,36 @@ begin
     process(clk)
     begin
         if rising_edge(clk) then
-            en_add  <= en;
-            clr_add <= clr;
+            en_mul <= en;
+            en_add <= en_mul;
+            clr_mul <= clr;
+            clr_add <= clr_mul;
         end if;
     end process;
+
+    process(clk)
+    begin
+        if rising_edge(clk) then
+            if rst = '1' then
+                mac_a_reg <= (others => '0');
+            else
+                mac_a_reg <= mac_a;
+            end if;
+        end if;
+    end process;
+
     mac_units : for i in 0 to N_MAC - 1 generate
         process(clk)
         begin
             if rising_edge(clk) then
                 if rst = '1' then
-                    prod(i) <= (others => '0'); --mecemo ovo u registarsku banku
+                    mac_b_reg(i) <= (others => '0');
+                    prod(i) <= (others => '0');
                     acc(i) <= (others => '0');
                 else
-                    if en = '1' then
-                        prod(i) <= mac_a * mac_b(i);
+                    mac_b_reg(i) <= mac_b(i);
+                    if en_mul = '1' then
+                        prod(i) <= mac_a_reg * mac_b_reg(i);
                     end if;
                     if en_add = '1' then
                         if clr_add = '1' then
