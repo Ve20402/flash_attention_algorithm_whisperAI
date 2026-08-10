@@ -159,7 +159,7 @@ begin
                 generic map (ADDR_WIDTH => 10, DATA_WIDTH => 24)
                 port map (clk_1 => clk, w_en_1 => k_bank_wr_en(i), addr_1 => k_bank_wr_addr,
                           data_in_1 => k_wr_data, data_out_1 => open, clk_2 => clk, w_en_2 => '0',
-                          addr_2 => k_bank_rd_addr, data_in_2 => (others => '0'), data_out_2 => k_data_out(i)); --ovde mi nije jasno kada stavljam i, zasto za adresu ne, a da dout da?
+                          addr_2 => k_bank_rd_addr, data_in_2 => (others => '0'), data_out_2 => k_data_out(i)); 
     end generate;
     --adresiranje po bankama
     k_bank_wr_addr <= kv_wr_buffer & k_wr_addr(11 downto 9) & k_wr_addr(5 downto 0);
@@ -177,7 +177,7 @@ begin
                           addr_2 => v_bank_rd_addr, data_in_2 => (others => '0'), data_out_2 => v_data_out(i));
     end generate;
     --adresiranje po v bankama
-    v_bank_wr_addr <= kv_wr_buffer & v_wr_addr(11 downto 6) & v_wr_addr(5 downto 3);    --ovde cepamo po d, a ne po c za razliku od K tile
+    v_bank_wr_addr <= kv_wr_buffer & v_wr_addr(11 downto 6) & v_wr_addr(5 downto 3);  
     v_bank_rd_addr <= kv_rd_buffer & v_rd_addr(11 downto 6) & v_rd_addr(5 downto 3);
     --wr en za v banke
     gen_wr_en_v_bank : for i in 0 to N_MAC - 1 generate
@@ -210,13 +210,11 @@ begin
         end if;
     end process;
     s_data <= s_data_out(s_bank_sel);
-    --adresiranje po o bankama, upisna adresa kasni 2 takta kao i o_wr_en
     o_bank_wr_addr <= o_wr_addr_delay_2(10 downto 6) & o_wr_addr_delay_2(5 downto 3);
     o_bank_rd_addr <= o_rd_addr(10 downto 6) & o_rd_addr(5 downto 3);
     gen_wr_en_o_bank : for i in 0 to N_MAC - 1 generate
         o_bank_wr_en(i) <= o_wr_en_delay_2;
     end generate;
-    --izbor O banke kasni 1 takt (BRAM +1) da se poravna sa o_data_out
     process(clk)
     begin
         if rising_edge(clk) then
@@ -224,7 +222,7 @@ begin
         end if;
     end process;
     o_data <= o_data_out(o_bank_sel);
-                                --sada zapravo izvrsavanje algoritma--\
+                                --izvrsavanje algoritma--
     --prod = Q_tile[r][d] * K_tile[c][d];
     --S[r][c] = S[r][c] + prod;
     mac_a <= signed(q_data_out) when sel_a = '1' else signed(p_row_data);   --isti q ide svima
@@ -299,7 +297,7 @@ begin
             max_comp_1_reg <= max_comp_1;
             max_comp_2_reg <= max_comp_2;
             en_max_delay_1 <= en_max;
-            en_max_delay_2 <= en_max_delay_1;   --ovde mora tako jer u taktu T je en max postavljen na visoku vrednost, a u taktu T + 1 vec zahteva mnozenje stabla,  a mi nismo jos izvrsili to, pa mora delay 2 takta
+            en_max_delay_2 <= en_max_delay_1;  
         end if;
     end process;
     --registar za vrednosti m_new
