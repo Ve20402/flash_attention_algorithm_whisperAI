@@ -5,6 +5,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <sstream>
 #include <vector>
 
 using namespace sc_core;
@@ -68,6 +69,16 @@ static vector<float> read_floats(const string &filename) {
 	return buf;
 }
 
+static void require_size(const string &name, const vector<float> &values,
+                         size_t expected) {
+	if (values.size() != expected) {
+		ostringstream message;
+		message << name << ": expected " << expected << " values, loaded "
+		        << values.size();
+		SC_REPORT_FATAL("CPU", message.str().c_str());
+	}
+}
+
 static vector<float> build_feed(const vector<float> &Q, const vector<float> &K,
                                 const vector<float> &V, const vector<float> &W,
                                 const vector<float> &b) {
@@ -112,6 +123,11 @@ void Cpu::run() {
 	vector<float> V = read_floats("../data/matrice/multihead_ulaz_V.txt");
 	vector<float> W = read_floats("../data/matrice/multihead_W_out.txt");
 	vector<float> b = read_floats("../data/matrice/multihead_b_out.txt");
+	require_size("Q", Q, (size_t)ROWS * COLS);
+	require_size("K", K, (size_t)ROWS * COLS);
+	require_size("V", V, (size_t)ROWS * COLS);
+	require_size("W", W, (size_t)COLS * COLS);
+	require_size("bias", b, COLS);
 
 	cout << "CPU : Building stream order..." << endl;
 	vector<float> feed = build_feed(Q, K, V, W, b);

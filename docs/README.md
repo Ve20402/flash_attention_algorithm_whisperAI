@@ -42,23 +42,42 @@ sudo apt install git build-essential python3 python3-pip python3-dev \
 ## Running the ESL model
 
 ```bash
-cd esl
 make app
 ```
 
 This command:
 
-1. builds the C++/Pybind11 attention reference model,
-2. runs the IP,
+1. creates `esl/.venv` and installs dependencies when needed,
+2. builds and runs the C++/Pybind11 attention reference model,
 3. builds and executes the SystemC/TLM virtual platform,
 4. compares the virtual-platform output against the software reference.
 
-To build and run only the virtual platform:
+`make app` stores the complete real Whisper tensors in `data/matrice/`:
+
+- `multihead_ulaz_Q.txt`, `multihead_ulaz_K.txt`, `multihead_ulaz_V.txt`;
+- `multihead_output_pre_wout.txt` for RTL comparison before `out_proj`;
+- `output_main_app.txt` for virtual-platform comparison after `out_proj`.
+
+To run the short GHDL regression with real Whisper data (head 3, one 32-row
+Q block against all 1500 K/V rows):
 
 ```bash
-cd esl
-make vp
+make head
 ```
+
+The regression compares 2,048 RTL values directly against the matching slice
+of `multihead_output_pre_wout.txt`. Because all 1500 K/V rows are retained,
+the softmax domain is identical to the original full-context Whisper run.
+Progress is printed after every 8,192 transferred RTL input words.
+
+To remove generated build files and short RTL vectors while retaining the
+Python environment and complete ESL matrices:
+
+```bash
+make clean
+```
+
+The repository exposes only `make app`, `make head` and `make clean`.
 
 ## Current status
 

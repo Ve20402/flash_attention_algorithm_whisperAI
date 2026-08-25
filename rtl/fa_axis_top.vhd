@@ -22,13 +22,49 @@ entity fa_axis_top is
     s_axis_tvalid : in  std_logic;
     s_axis_tready : out std_logic;
     s_axis_tdata  : in  std_logic_vector(31 downto 0);
+    s_axis_tkeep  : in  std_logic_vector(3 downto 0);
     s_axis_tlast  : in  std_logic;  
 
     m_axis_tvalid : out std_logic;
     m_axis_tready : in  std_logic;
     m_axis_tdata  : out std_logic_vector(63 downto 0);
+    m_axis_tkeep  : out std_logic_vector(7 downto 0);
     m_axis_tlast  : out std_logic
   );
+
+  attribute X_INTERFACE_INFO : string;
+  attribute X_INTERFACE_PARAMETER : string;
+
+  attribute X_INTERFACE_INFO of aclk : signal is
+      "xilinx.com:signal:clock:1.0 aclk CLK";
+  attribute X_INTERFACE_PARAMETER of aclk : signal is
+      "ASSOCIATED_BUSIF s_axis:m_axis, ASSOCIATED_RESET aresetn, FREQ_HZ 100000000";
+  attribute X_INTERFACE_INFO of aresetn : signal is
+      "xilinx.com:signal:reset:1.0 aresetn RST";
+  attribute X_INTERFACE_PARAMETER of aresetn : signal is
+      "POLARITY ACTIVE_LOW";
+
+  attribute X_INTERFACE_INFO of s_axis_tvalid : signal is
+      "xilinx.com:interface:axis:1.0 s_axis TVALID";
+  attribute X_INTERFACE_INFO of s_axis_tready : signal is
+      "xilinx.com:interface:axis:1.0 s_axis TREADY";
+  attribute X_INTERFACE_INFO of s_axis_tdata : signal is
+      "xilinx.com:interface:axis:1.0 s_axis TDATA";
+  attribute X_INTERFACE_INFO of s_axis_tkeep : signal is
+      "xilinx.com:interface:axis:1.0 s_axis TKEEP";
+  attribute X_INTERFACE_INFO of s_axis_tlast : signal is
+      "xilinx.com:interface:axis:1.0 s_axis TLAST";
+
+  attribute X_INTERFACE_INFO of m_axis_tvalid : signal is
+      "xilinx.com:interface:axis:1.0 m_axis TVALID";
+  attribute X_INTERFACE_INFO of m_axis_tready : signal is
+      "xilinx.com:interface:axis:1.0 m_axis TREADY";
+  attribute X_INTERFACE_INFO of m_axis_tdata : signal is
+      "xilinx.com:interface:axis:1.0 m_axis TDATA";
+  attribute X_INTERFACE_INFO of m_axis_tkeep : signal is
+      "xilinx.com:interface:axis:1.0 m_axis TKEEP";
+  attribute X_INTERFACE_INFO of m_axis_tlast : signal is
+      "xilinx.com:interface:axis:1.0 m_axis TLAST";
 end fa_axis_top;
 
 architecture Behavioral of fa_axis_top is
@@ -58,6 +94,7 @@ architecture Behavioral of fa_axis_top is
     signal m_data    : std_logic_vector(63 downto 0) := (others => '0');
     signal fetching  : std_logic := '0';
     signal tlast_cnt : integer range 0 to COLS_G - 1 := 0;
+
 begin
 
     rst <= not aresetn;
@@ -125,6 +162,7 @@ begin
 
     m_axis_tvalid <= m_valid;
     m_axis_tdata  <= m_data;
+    m_axis_tkeep  <= (others => '1');
     m_axis_tlast  <= '1' when (m_valid = '1' and tlast_cnt = COLS_G - 1) else '0';
 
     process(aclk)

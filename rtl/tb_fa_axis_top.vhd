@@ -21,8 +21,10 @@ architecture sim of tb_fa_axis_top is
 
     signal s_tvalid, s_tready, s_tlast : std_logic;
     signal s_tdata : std_logic_vector(31 downto 0);
+    signal s_tkeep : std_logic_vector(3 downto 0) := (others => '1');
     signal m_tvalid, m_tready, m_tlast : std_logic;
     signal m_tdata : std_logic_vector(63 downto 0);
+    signal m_tkeep : std_logic_vector(7 downto 0);
 
     function q618(n : integer) return std_logic_vector is
     begin
@@ -56,9 +58,11 @@ begin
             aclk => aclk, aresetn => aresetn,
             run => run, all_done => all_done,
             s_axis_tvalid => s_tvalid, s_axis_tready => s_tready,
-            s_axis_tdata => s_tdata, s_axis_tlast => s_tlast,
+            s_axis_tdata => s_tdata, s_axis_tkeep => s_tkeep,
+            s_axis_tlast => s_tlast,
             m_axis_tvalid => m_tvalid, m_axis_tready => m_tready,
-            m_axis_tdata => m_tdata, m_axis_tlast => m_tlast
+            m_axis_tdata => m_tdata, m_axis_tkeep => m_tkeep,
+            m_axis_tlast => m_tlast
         );
 
     producer : process
