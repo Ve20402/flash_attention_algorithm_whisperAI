@@ -1,6 +1,7 @@
 #ifndef DMA_H
 #define DMA_H
 
+#include "datatypes.h"
 #include "host_memory.h"
 #include <systemc.h>
 #include <tlm.h>
@@ -12,8 +13,8 @@ using namespace tlm_utils;
 SC_MODULE(Dma) {
 
 	simple_target_socket<Dma> cfg_socket;
-	sc_fifo_out<float> stream_to_ip;
-	sc_fifo_in<float> stream_from_ip;
+	sc_fifo_out<fixed_word_t> stream_to_ip;
+	sc_fifo_in<fixed_word_t> stream_from_ip;
 	HostMemory *host_ram;
 
 	uint64_t reg_src_addr;

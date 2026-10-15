@@ -25,3 +25,17 @@ shell.nix
 .claude/
 
 *:Zone.Identifier
+# Generated Vivado and UVM data
+/.Xil/
+/uvm/build/
+/uvm/results/
+/rtl/build/
+/dfx_runtime.txt
+/xcrg.log
+
+# Local notes and document drafts
+/.tmp_pdf_review/
+/tmp/
+/output/
+/uvm/*.doc
+/uvm/*.docx

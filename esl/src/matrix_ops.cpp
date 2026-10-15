@@ -1,70 +1,97 @@
 #include "header/matrix_ops.h"
+
 #include <algorithm>
 #include <cmath>
+#include <systemc>
+#include <vector>
 
-void matmul(const float *X, const float *W, float *Y, int rows, int inner, int w_cols, bool accumulate) {
-	for (int i = 0; i < rows; i++)
-		for (int j = 0; j < w_cols; j++) {
-			float sum = 0.0f;
-			for (int k = 0; k < inner; k++)
-				sum += X[i * inner + k] * W[k * w_cols + j];
-			if (accumulate)
-				Y[i * w_cols + j] += sum;
-			else
-				Y[i * w_cols + j] = sum;
-		}
+using Data = sc_dt::sc_fixed<24, 6, sc_dt::SC_TRN, sc_dt::SC_WRAP>;
+using Score = sc_dt::sc_fixed<48, 12, sc_dt::SC_TRN, sc_dt::SC_WRAP>;
+using Probability = sc_dt::sc_fixed<18, 2, sc_dt::SC_TRN, sc_dt::SC_WRAP>;
+using Sum = sc_dt::sc_fixed<48, 32, sc_dt::SC_TRN, sc_dt::SC_WRAP>;
+using Output = sc_dt::sc_fixed<48, 14, sc_dt::SC_TRN, sc_dt::SC_WRAP>;
+
+template <typename Fixed>
+Fixed from_raw(fixed_word_t raw) {
+	Fixed format = 0;
+	return Fixed(std::ldexp(static_cast<double>(raw), format.iwl() - format.wl()));
 }
 
-void flash_attn_init(float *m_buf, float *l_buf, float *O_acc, int br, int HEAD_DIM) {
-	for (int r = 0; r < br; r++) {
-		m_buf[r] = -1e30f;
-		l_buf[r] = 0.0f;
-		for (int d = 0; d < HEAD_DIM; d++)
-			O_acc[r * HEAD_DIM + d] = 0.0f;
+template <typename Fixed>
+fixed_word_t to_raw(const Fixed &value) {
+	return static_cast<fixed_word_t>(std::ldexp(value.to_double(), value.wl() - value.iwl()));
+}
+Probability fixed_exp(const Score &argument) {
+	return Probability(std::exp(argument.to_double()));
+}
+
+void flash_attn_init(fixed_word_t *maximum, fixed_word_t *sum,
+	                 fixed_word_t *output, int query_rows, int head_dim) {
+	for (int row = 0; row < query_rows; ++row) {
+		maximum[row] = -(fixed_word_t{1} << 46);
+		sum[row] = 0;
+		std::fill_n(output + row * head_dim, head_dim, 0);
 	}
 }
 
-void flash_attn_step(const float *Q_tile, int br, const float *K_tile,
-                     const float *V_tile, int tk, float *m_buf, float *l_buf,
-                     float *O_acc, int HEAD_DIM) {
+void flash_attn_step(const fixed_word_t *q, int query_rows,
+	                 const fixed_word_t *k, const fixed_word_t *v, int kv_rows,
+	                 fixed_word_t *maximum, fixed_word_t *sum,
+	                 fixed_word_t *output, int head_dim) {
+	std::vector<Data> q_fixed(static_cast<std::size_t>(query_rows) * head_dim);
+	std::vector<Data> k_fixed(static_cast<std::size_t>(kv_rows) * head_dim);
+	std::vector<Data> v_fixed(static_cast<std::size_t>(kv_rows) * head_dim);
+	std::vector<Score> scores(static_cast<std::size_t>(query_rows) * kv_rows);
 
-	static const int BR_MAX = 128;
-	static const int BC_MAX = 128;
-	static float S[BR_MAX * BC_MAX];
+	for (std::size_t i = 0; i < q_fixed.size(); ++i)
+		q_fixed[i] = from_raw<Data>(q[i]);
+	for (std::size_t i = 0; i < k_fixed.size(); ++i) {
+		k_fixed[i] = from_raw<Data>(k[i]);
+		v_fixed[i] = from_raw<Data>(v[i]);
+	}
 
-	for (int r = 0; r < br; r++)
-		for (int c = 0; c < tk; c++) {
-			float s = 0.0f;
-			for (int d = 0; d < HEAD_DIM; d++)
-				s += Q_tile[r * HEAD_DIM + d] * K_tile[c * HEAD_DIM + d];
-			S[r * tk + c] = s;
+	for (int row = 0; row < query_rows; ++row) {
+		for (int column = 0; column < kv_rows; ++column) {
+			Score score = 0;
+			for (int dim = 0; dim < head_dim; ++dim)
+				score += q_fixed[row * head_dim + dim] * k_fixed[column * head_dim + dim];
+			scores[row * kv_rows + column] = score;
+		}
+	}
+
+	for (int row = 0; row < query_rows; ++row) {
+		std::vector<Output> output_fixed(head_dim);
+		const Score old_maximum = from_raw<Score>(maximum[row]);
+		Score new_maximum = old_maximum;
+		for (int column = 0; column < kv_rows; ++column)
+			new_maximum = std::max(new_maximum, scores[row * kv_rows + column]);
+
+		const Probability scale = fixed_exp(old_maximum - new_maximum);
+		Sum new_sum = from_raw<Sum>(sum[row]) * scale;
+		for (int dim = 0; dim < head_dim; ++dim)
+			output_fixed[dim] = from_raw<Output>(output[row * head_dim + dim]) * scale;
+
+		for (int column = 0; column < kv_rows; ++column) {
+			const Probability probability = fixed_exp(scores[row * kv_rows + column] - new_maximum);
+			new_sum += probability;
+			for (int dim = 0; dim < head_dim; ++dim)
+				output_fixed[dim] += Output(probability * v_fixed[column * head_dim + dim]);
 		}
 
-	for (int r = 0; r < br; r++) {
-		float m_new = m_buf[r];
-		for (int c = 0; c < tk; c++)
-			m_new = std::max(m_new, S[r * tk + c]);
-
-		float scale = std::exp(m_buf[r] - m_new);
-		float l_new = l_buf[r] * scale;
-		for (int d = 0; d < HEAD_DIM; d++)
-			O_acc[r * HEAD_DIM + d] *= scale;
-
-		for (int c = 0; c < tk; c++) {
-			float p = std::exp(S[r * tk + c] - m_new);
-			l_new += p;
-			for (int d = 0; d < HEAD_DIM; d++)
-				O_acc[r * HEAD_DIM + d] += p * V_tile[c * HEAD_DIM + d];
-		}
-		m_buf[r] = m_new;
-		l_buf[r] = l_new;
+		maximum[row] = to_raw(new_maximum);
+		sum[row] = to_raw(new_sum);
+		for (int dim = 0; dim < head_dim; ++dim)
+			output[row * head_dim + dim] = to_raw(output_fixed[dim]);
 	}
 }
 
-void flash_attn_finalize(float *O_acc, const float *l_buf, int br, int HEAD_DIM) {
-	for (int r = 0; r < br; r++) {
-		float inv = 1.0f / l_buf[r];
-		for (int d = 0; d < HEAD_DIM; d++)
-			O_acc[r * HEAD_DIM + d] *= inv;
+void flash_attn_finalize(fixed_word_t *output, const fixed_word_t *sum, int query_rows, int head_dim) {
+	for (int row = 0; row < query_rows; ++row) {
+		const Sum row_sum = from_raw<Sum>(sum[row]);
+		const Probability inverse = Probability(1.0 / row_sum.to_double());
+		for (int dim = 0; dim < head_dim; ++dim) {
+			const Output value = from_raw<Output>(output[row * head_dim + dim]);
+			output[row * head_dim + dim] = to_raw(Output(value * inverse));
+		}
 	}
 }

@@ -7,6 +7,15 @@ using namespace sc_core;
 using namespace tlm;
 using namespace std;
 
+namespace {
+
+fixed_word_t signed_q6_18(uint32_t word) {
+	word &= 0x00ffffffu;
+	return (word & 0x00800000u) ? static_cast<fixed_word_t>(word) - (1 << 24) : static_cast<fixed_word_t>(word);
+}
+
+}
+
 Dma::Dma(sc_module_name name, HostMemory *hm)
     : sc_module(name), cfg_socket("cfg_socket"), stream_to_ip("stream_to_ip"),
       stream_from_ip("stream_from_ip"), host_ram(hm), reg_src_addr(0),
@@ -83,18 +92,25 @@ void Dma::thread_h2d() {
 
 		uint64_t i = 0;
 		while (i + 1 < n) {
-			float a, b;
-			host_ram->read(addr, reinterpret_cast<unsigned char *>(&a), 4);
-			host_ram->read(addr + 4, reinterpret_cast<unsigned char *>(&b), 4);
+			uint32_t raw_a = 0, raw_b = 0;
+			host_ram->read(addr, reinterpret_cast<unsigned char *>(&raw_a),
+			               sizeof(raw_a));
+			host_ram->read(addr + sizeof(raw_a),
+			               reinterpret_cast<unsigned char *>(&raw_b),
+			               sizeof(raw_b));
+			const fixed_word_t a = signed_q6_18(raw_a);
+			const fixed_word_t b = signed_q6_18(raw_b);
 			stream_to_ip.write(a);
 			stream_to_ip.write(b);
-			addr += 8;
+			addr += sizeof(raw_a) + sizeof(raw_b);
 			i += 2;
 			cycles++;
 		}
 		if (i < n) {
-			float a;
-			host_ram->read(addr, reinterpret_cast<unsigned char *>(&a), 4);
+			uint32_t raw = 0;
+			host_ram->read(addr, reinterpret_cast<unsigned char *>(&raw),
+			               sizeof(raw));
+			const fixed_word_t a = signed_q6_18(raw);
 			stream_to_ip.write(a);
 			i++;
 			cycles++;
@@ -115,17 +131,20 @@ void Dma::thread_d2h() {
 
 		uint64_t i = 0;
 		while (i + 1 < total) {
-			float a = stream_from_ip.read();
-			float b = stream_from_ip.read();
-			host_ram->write(addr, reinterpret_cast<unsigned char *>(&a), 4);
-			host_ram->write(addr + 4, reinterpret_cast<unsigned char *>(&b), 4);
-			addr += 8;
+			fixed_word_t a = stream_from_ip.read();
+			fixed_word_t b = stream_from_ip.read();
+			host_ram->write(addr, reinterpret_cast<unsigned char *>(&a),
+			                sizeof(a));
+			host_ram->write(addr + sizeof(a),
+			                reinterpret_cast<unsigned char *>(&b), sizeof(b));
+			addr += 2 * sizeof(a);
 			i += 2;
 			cycles++;
 		}
 		if (i < total) {
-			float a = stream_from_ip.read();
-			host_ram->write(addr, reinterpret_cast<unsigned char *>(&a), 4);
+			fixed_word_t a = stream_from_ip.read();
+			host_ram->write(addr, reinterpret_cast<unsigned char *>(&a),
+			                sizeof(a));
 			i++;
 			cycles++;
 		}

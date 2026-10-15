@@ -4,8 +4,7 @@
 using namespace std;
 using namespace tlm;
 
-void Interconnect::b_transport(int id, tlm_generic_payload &trans,
-                               sc_time &delay) {
+void Interconnect::b_transport(int id, tlm_generic_payload &trans, sc_time &delay) {
 
 	uint64_t global_addr = trans.get_address();
 
@@ -23,7 +22,7 @@ void Interconnect::b_transport(int id, tlm_generic_payload &trans,
 		return;
 	}
 
-	cerr << "Interconnect ERROR: unmapped address 0x" << hex << global_addr
+	cerr << "unmapped address 0x" << hex << global_addr
 	     << dec << endl;
 	trans.set_response_status(TLM_ADDRESS_ERROR_RESPONSE);
 }

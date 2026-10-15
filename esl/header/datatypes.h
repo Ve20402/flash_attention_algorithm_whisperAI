@@ -1,32 +1,33 @@
 #ifndef DATATYPES_H
 #define DATATYPES_H
 
-#ifndef SC_INCLUDE_FX
-#define SC_INCLUDE_FX
-#endif
-
-#include <systemc.h>
-#include <tlm.h>
-#include <vector>
+#include <cstdint>
 
 #define MAX_COLS 1024
 
 namespace attn {
-const int ROWS = 1500;
-const int COLS = 512;
+const int KV_ROWS = 1500;
+const int QUERY_ROWS = 1500;
 const int NUM_HEADS = 8;
 const int HEAD_DIM = 64;
 const int B = 32;
 const int BC = 64;
-} 
 
-using DATA_T = sc_fixed<32, 10>;
-using PROB_T = sc_fixed<16, 1>;
-using ACC_T = sc_fixed<32, 12>;
+const int DATA_BITS = 24;
+const int DATA_FRAC = 18; // RTL data_t: Q6.18
+const int PROB_BITS = 18;
+const int PROB_FRAC = 16; // RTL prob_t: Q2.16
+const int ACC_BITS = 48;
+const int ACC_FRAC = 34; // RTL O accumulator/output: Q14.34
 
-typedef float mem_data_t;
+struct AttentionConfig {
+	int query_rows = QUERY_ROWS;
+	int kv_rows = KV_ROWS;
+	int heads = NUM_HEADS;
+	int head_dim = HEAD_DIM;
+};
+} // namespace attn
 
-using Matrix = std::vector<std::vector<DATA_T>>;
-using Vector = std::vector<DATA_T>;
+using fixed_word_t = std::int64_t;
 
 #endif

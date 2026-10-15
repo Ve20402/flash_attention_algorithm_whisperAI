@@ -5,10 +5,13 @@ using namespace sc_core;
 using namespace tlm;
 using namespace std;
 
-vp::vp(sc_module_name name)
+vp::vp(sc_module_name name, const std::string &input_path,
+       const std::string &output_path,
+       const attn::AttentionConfig &attention_config)
     : sc_module(name), host_ram(new HostMemory(512 * 1024 * 1024)),
       fifo_to_ip("fifo_to_ip", 1024), fifo_from_ip("fifo_from_ip", 1024),
-      cpu("cpu", host_ram), bus("bus"), dma("dma", host_ram), ip("ip"),
+      cpu("cpu", host_ram, input_path, output_path, attention_config),
+      bus("bus"), dma("dma", host_ram), ip("ip", attention_config),
       bram("bram", attn::bram_size_bytes) {
 
 	cpu.socket.bind(bus.target_socket);

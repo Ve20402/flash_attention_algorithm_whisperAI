@@ -1,7 +1,6 @@
 ghdl_work/
 work-obj*.cf
 matrice/
-*.bin
 *.vcd
 *.ghw
 __pycache__/

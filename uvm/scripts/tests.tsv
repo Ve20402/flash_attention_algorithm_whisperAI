@@ -1,0 +1,5 @@
+suites	name	seed	rows	heads	b	bc	pattern	data	input_gaps	output_stalls	reset_compute	last_stall	purpose
+extended	random_input_combined	123	7	8	4	4	k_zero_lsb	1	1	1	0	0	K zero, random Q/V with signed LSB samples, partial tiles, eight heads and timing gaps
+extended	random_stalls_combined	124	12	4	4	4	random	1	1	1	0	12	Random Q/K/V, three full Q tiles, boundary gaps, random output stalls and directed final-word stall
+extended	reset_compute	123	3	1	4	4	random	1	0	0	1	0	Reset during computation; verify cleared state and no output without another RUN
+diagnostic	numeric_range	125	2	1	4	4	numeric_range	1	0	0	0	0	Representable Q/K values with a 4096 dot product; verify accumulator range against the real reference

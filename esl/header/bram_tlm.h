@@ -10,18 +10,15 @@ using namespace tlm;
 using namespace tlm_utils;
 
 namespace attn {
-const int FLOAT_BYTES = 4;
+const int WORD_BYTES = sizeof(fixed_word_t);
 const int offset_Q = 0;
-const int offset_W = offset_Q + B * HEAD_DIM * FLOAT_BYTES;
-const int offset_bias = offset_W + COLS * FLOAT_BYTES;
-const int offset_K = offset_bias + COLS * FLOAT_BYTES;
-const int offset_V = offset_K + BC * HEAD_DIM * FLOAT_BYTES;
-const int offset_O = offset_V + BC * HEAD_DIM * FLOAT_BYTES;
-const int offset_m = offset_O + B * HEAD_DIM * FLOAT_BYTES;
-const int offset_l = offset_m + B * FLOAT_BYTES;
-const int offset_Y = offset_l + B * FLOAT_BYTES;
-const int bram_size_bytes = offset_Y + B * COLS * FLOAT_BYTES;
-} 
+const int offset_K = offset_Q + B * HEAD_DIM * WORD_BYTES;
+const int offset_V = offset_K + BC * HEAD_DIM * WORD_BYTES;
+const int offset_O = offset_V + BC * HEAD_DIM * WORD_BYTES;
+const int offset_m = offset_O + B * HEAD_DIM * WORD_BYTES;
+const int offset_l = offset_m + B * WORD_BYTES;
+const int bram_size_bytes = offset_l + B * WORD_BYTES;
+} // namespace attn
 
 SC_MODULE(BramTLM) {
 	simple_target_socket<BramTLM> socket;
